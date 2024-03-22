@@ -357,6 +357,17 @@ class PeftTraining:
                 model = AutoModelForSeq2SeqLM.from_pretrained(
                     config["model_name_or_path"]
                 )
+
+                tokenizer = AutoTokenizer.from_pretrained(
+                    config["tokenizer_name_or_path"],
+                    model_max_length=512,
+                    use_fast=True,
+                )
+                model.resize_token_embeddings(len(tokenizer))
+
+                if tokenizer.pad_token_id is None:
+                    tokenizer.pad_token_id = tokenizer.eos_token_id
+
                 model = get_peft_model(model, peft_config)
 
                 # pretrained_attempt = torch.load(os.path.join(config["output_dir"], "attempt_original/MNLI/adapter_model.bin"))
@@ -378,15 +389,6 @@ class PeftTraining:
                     weight_decay=config.get("weight_decay", 0.01),
                 )
 
-                tokenizer = AutoTokenizer.from_pretrained(
-                    config["tokenizer_name_or_path"],
-                    model_max_length=512,
-                    use_fast=True,
-                )
-                model.resize_token_embeddings(len(tokenizer))
-
-                if tokenizer.pad_token_id is None:
-                    tokenizer.pad_token_id = tokenizer.eos_token_id
 
                 metrics_fn = self.build_compute_metrics_fn(tokenizer, config)
                 # print(metrics_fn)
@@ -401,5 +403,7 @@ class PeftTraining:
                 )
 
                 trainer.run()
+
+                model.print_trainable_parameters()
 
                 print(f"Finished {config['run']}. run...")

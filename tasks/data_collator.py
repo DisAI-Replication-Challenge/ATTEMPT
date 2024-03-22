@@ -11,7 +11,7 @@ class TaskDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
 
     def __call__(self, features):
         tasks = [d.pop("task") for d in features]
-        extra_fields = [d.pop("extra_fields") for d in features]
+        extra_fields = [d.pop("extra_fields") for d in features if "extra_fields" in d]
         self.check_uniqueness(tasks)
         output = super().__call__(features)
         output["task"] = tasks[0]

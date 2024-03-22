@@ -46,7 +46,7 @@ class F1ScoreWithInvalid(Metric):
             targets.astype(np.int32)
         )
 
-        conf_mat = confusion_matrix(preds, targets, task="binary")
+        conf_mat = confusion_matrix(preds, targets, num_classes=2, task="binary")
         self.tn += conf_mat[0, 0]
         self.fp += conf_mat[0, 1]
         self.fn += conf_mat[1, 0]

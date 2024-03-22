@@ -237,7 +237,7 @@ class PeftEval:
                 else:
                     result[f"{prefix}_{n}"] = m(decoded_preds, decoded_labels)
 
-            print(decoded_preds, decoded_labels, result)
+            # print(decoded_preds, decoded_labels, result)
 
             return result
 
@@ -293,15 +293,26 @@ class PeftEval:
                     peft_config.n_targets = len(config["datasets"])
 
             model = AutoModelForSeq2SeqLM.from_pretrained(config["model_name_or_path"])
+            
+            tokenizer = AutoTokenizer.from_pretrained(
+                config["tokenizer_name_or_path"],
+                model_max_length=512,
+                use_fast=True,
+            )
+            model.resize_token_embeddings(len(tokenizer))
+
+            if tokenizer.pad_token_id is None:
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+            
             dataset_name = config["datasets"][0]
 
-            if config["peft_type"] == "prompt_tunning":
+            if config["peft_type"] == "prompt_tuning":
                 model = get_peft_model(model, peft_config)
                 if "superglue" in dataset_name:
                     dataset_name = dataset_name.split("-")[1]
 
                 weights = torch.load(f"{self.dir}/{dataset_name}.bin")
-                if type(weights) == torch.nn.ModuleDict:
+                if type(weights) == torch.nn.ModuleDict or type(weights) == dict:
                     model.prompt_encoder.peft.embedding.weight = torch.nn.Parameter(
                         weights["prompt_embeddings"]
                     )
@@ -331,16 +342,6 @@ class PeftEval:
                 lr=config["learning_rate"],
                 weight_decay=config.get("weight_decay", 0.01),
             )
-
-            tokenizer = AutoTokenizer.from_pretrained(
-                config["tokenizer_name_or_path"],
-                model_max_length=512,
-                use_fast=True,
-            )
-            model.resize_token_embeddings(len(tokenizer))
-
-            if tokenizer.pad_token_id is None:
-                tokenizer.pad_token_id = tokenizer.eos_token_id
 
             metrics_fn = self.build_compute_metrics_fn(tokenizer, config)
             # print(metrics_fn)
