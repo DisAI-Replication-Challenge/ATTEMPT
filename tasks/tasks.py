@@ -754,6 +754,149 @@ class PAWS(AbstractTask):
         label_texts = [str(example["label"])]
         return self.formater(self.name, input_texts, label_texts, add_prefix)
 
+class SciTail(AbstractTask):
+    name = "scitail"
+    labels_list = ["0", "1"]
+    metrics = [Accuracy, F1ScoreWithInvalid]
+    metric_names = ["accuracy", "f1"]
+    split_to_data_split = {"train": "train", "validation": "validation", "test": "test"}
+    label_column_name = "gold_label"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset(
+            "scitail", "snli_format", split=split
+        ).class_encode_column(self.label_column_name)
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = [
+            "premise:",
+            example["sentence1"],
+            "hypothesis:",
+            example["sentence2"],
+        ]
+        label_texts = [str(example[self.label_column_name])]
+
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+    
+class SNLI(AbstractTask):
+    name = "snli"
+    labels_list = ["0", "1", "2"]
+    metrics = [Accuracy, MeanMulticlassF1]
+    metric_names = ["accuracy", "f1_multiclass"]
+    split_to_data_split = {"train": "train", "validation": "validation", "test": "test"}
+    label_column_name = "label"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset("snli", split=split).filter(
+            lambda x: x["label"] != -1
+        )
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = [
+            "premise:",
+            example["premise"],
+            "hypothesis:",
+            example["hypothesis"],
+        ]
+        label_texts = [str(example[self.label_column_name])]
+
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+
+class AGNews(AbstractTask):
+    name = "ag_news"
+    labels_list = [str(i) for i in list(range(4))]
+    metrics = [Accuracy, MeanMulticlassF1]
+    metric_names = ["accuracy", "f1_multiclass"]
+    split_to_data_split = {"train": "train", "test": "test"}
+    label_column_name = "label"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset("ag_news", split=split)
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = [
+            "What is the category for following text:",
+            example["text"],
+        ]
+        label_texts = [str(example[self.label_column_name])]
+
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+
+class Yahoo(AbstractTask):
+    name = "yahoo"
+    labels_list = [str(i) for i in list(range(10))]
+    metrics = [Accuracy, MeanMulticlassF1]
+    metric_names = ["accuracy", "f1_multiclass"]
+    split_to_data_split = {"train": "train", "test": "test"}
+    label_column_name = "topic"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset("yahoo_answers_topics", split=split)
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = [
+            "What is the category for following text: title:",
+            example["question_title"],
+            "content:",
+            example["question_content"],
+            "answer:",
+            example["best_answer"],
+        ]
+        label_texts = [str(example[self.label_column_name])]
+
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+    
+
+class IMDB(AbstractTask):
+    name = "imdb"
+    labels_list = ["0", "1"]
+    metrics = [Accuracy, F1ScoreWithInvalid]
+    metric_names = ["accuracy", "f1"]
+    split_to_data_split = {"train": "train", "test": "test"}
+    label_column_name = "label"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset("imdb")[split]
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = ["sentence:", example["text"]]
+        label_texts = [str(example[self.label_column_name])]
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+    
+class SST5(AbstractTask):
+    name = "sst5"
+    labels_list = ["0", "1", "2", "3", "4"]
+    metrics = [Accuracy, MeanMulticlassF1]
+    metric_names = ["accuracy", "f1_multiclass"]
+    split_to_data_split = {
+        "train": "train",
+        "validation": "validation",
+        "test": "validation",
+    }
+    label_column_name = "label"
+
+    def load_dataset(self, split):
+        return datasets.load_dataset("SetFit/sst5", split=split)
+
+    def preprocessor(self, example, add_prefix=True):
+        input_texts = ["sentence", example["sentence"]]
+        label_texts = [str(example[self.label_column_name])]
+
+        return self.formater(
+            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
+        )
+
+
 
 TASK_MAPPING = OrderedDict(
     [
@@ -782,6 +925,12 @@ TASK_MAPPING = OrderedDict(
         ("scitail", SciTail),
         ("yelp_polarity", YelpPolarity),
         ("paws", PAWS),
+        ("snli", SNLI),
+        ("scitail", SciTail),
+        ("ag_news", AGNews),
+        ("yahoo", Yahoo),
+        ("imdb", IMDB),
+        ("sst5", SST5),
     ]
 )
 
