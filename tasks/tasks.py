@@ -73,6 +73,11 @@ class AbstractTask:
         "triviaqa",
         "nq",
         "hotpotqa",
+        "snli",
+        "ag_news",
+        "yahoo",
+        "imdb",
+        "sst5",
     ]
 
     def __init__(self, config, seed=42):
@@ -753,32 +758,6 @@ class PAWS(AbstractTask):
         ]
         label_texts = [str(example["label"])]
         return self.formater(self.name, input_texts, label_texts, add_prefix)
-
-class SciTail(AbstractTask):
-    name = "scitail"
-    labels_list = ["0", "1"]
-    metrics = [Accuracy, F1ScoreWithInvalid]
-    metric_names = ["accuracy", "f1"]
-    split_to_data_split = {"train": "train", "validation": "validation", "test": "test"}
-    label_column_name = "gold_label"
-
-    def load_dataset(self, split):
-        return datasets.load_dataset(
-            "scitail", "snli_format", split=split
-        ).class_encode_column(self.label_column_name)
-
-    def preprocessor(self, example, add_prefix=True):
-        input_texts = [
-            "premise:",
-            example["sentence1"],
-            "hypothesis:",
-            example["sentence2"],
-        ]
-        label_texts = [str(example[self.label_column_name])]
-
-        return self.formater(
-            self.name.replace("_text", ""), input_texts, label_texts, add_prefix
-        )
     
 class SNLI(AbstractTask):
     name = "snli"
@@ -889,7 +868,7 @@ class SST5(AbstractTask):
         return datasets.load_dataset("SetFit/sst5", split=split)
 
     def preprocessor(self, example, add_prefix=True):
-        input_texts = ["sentence", example["sentence"]]
+        input_texts = ["sentence", example["text"]]
         label_texts = [str(example[self.label_column_name])]
 
         return self.formater(
@@ -926,7 +905,6 @@ TASK_MAPPING = OrderedDict(
         ("yelp_polarity", YelpPolarity),
         ("paws", PAWS),
         ("snli", SNLI),
-        ("scitail", SciTail),
         ("ag_news", AGNews),
         ("yahoo", Yahoo),
         ("imdb", IMDB),

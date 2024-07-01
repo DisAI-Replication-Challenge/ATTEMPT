@@ -187,7 +187,7 @@ class MeanMulticlassF1(Metric):
             self.targets,
             self.preds,
             beta=1,
-            labels=range(self.num_classes),
+            labels=np.unique(self.preds),
             average="macro",
         )
 

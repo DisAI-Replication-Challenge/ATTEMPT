@@ -95,38 +95,44 @@ class PeftTraining:
             for dataset_name in config["datasets"]
         ]
 
-        for i, train_dataset in enumerate(train_datasets):
-            if config["shared_attn"] is True:
-                train_datasets[i] = train_datasets[i].map(
-                    functools.partial(
-                        self.preprocess_function,
-                        config=config,
-                        tokenizer=tokenizer,
-                        max_target_length=max_target_lengths[i],
-                        task_id=i,
-                    ),
-                    batched=True,
-                    load_from_cache_file=False,
-                    desc="Running preprocess_function on train_dataset",
-                )
-            else:
-                train_datasets[i] = train_datasets[i].map(
-                    functools.partial(
-                        self.preprocess_function,
-                        config=config,
-                        tokenizer=tokenizer,
-                        max_target_length=max_target_lengths[i],
-                    ),
-                    batched=True,
-                    load_from_cache_file=False,
-                    desc="Running preprocess_function on train_dataset",
-                )
+        # print(train_datasets)
 
-            train_datasets[i] = train_datasets[i].remove_columns(
-                cols_to_remove + ["extra_fields"]
-            )
+        if config["max_train_samples"] > 0:
+            for i, train_dataset in enumerate(train_datasets):
+                if config["shared_attn"] is True:
+                    train_datasets[i] = train_datasets[i].map(
+                        functools.partial(
+                            self.preprocess_function,
+                            config=config,
+                            tokenizer=tokenizer,
+                            max_target_length=max_target_lengths[i],
+                            task_id=i,
+                        ),
+                        batched=True,
+                        load_from_cache_file=False,
+                        desc="Running preprocess_function on train_dataset",
+                    )
+                else:
+                    train_datasets[i] = train_datasets[i].map(
+                        functools.partial(
+                            self.preprocess_function,
+                            config=config,
+                            tokenizer=tokenizer,
+                            max_target_length=max_target_lengths[i],
+                        ),
+                        batched=True,
+                        load_from_cache_file=False,
+                        desc="Running preprocess_function on train_dataset",
+                    )
 
-        train_dataset = concatenate_datasets(train_datasets)
+                    train_datasets[i] = train_datasets[i].remove_columns(
+                        cols_to_remove + ["extra_fields"]
+                    )
+
+            
+            train_dataset = concatenate_datasets(train_datasets)
+        else:
+            train_dataset = None
 
         valid_datasets = {
             dataset_name: AutoTask.get(dataset_name, config).get(
@@ -217,13 +223,16 @@ class PeftTraining:
         else:
             data_collator = TaskDataCollatorForSeq2Seq(tokenizer, return_tensors="pt")
 
-        train_dataloader = DataLoader(
-            train_dataset,
-            shuffle=True,
-            collate_fn=data_collator,
-            batch_size=config["batch_size"],
-            pin_memory=True,
-        )
+        if config["max_train_samples"] > 0:
+            train_dataloader = DataLoader(
+                train_dataset,
+                shuffle=True,
+                collate_fn=data_collator,
+                batch_size=config["batch_size"],
+                pin_memory=True,
+            )
+        else:
+            train_dataloader = None
 
         valid_dataloaders = {
             name: DataLoader(

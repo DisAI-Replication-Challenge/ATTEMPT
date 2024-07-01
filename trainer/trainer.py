@@ -41,16 +41,24 @@ class Trainer:
         self.metrics = {}
         self.wandb = wandb
 
-        self.lr_scheduler = get_linear_schedule_with_warmup(
-            optimizer=self.optimizer,
-            num_warmup_steps=config["warmup_steps"],
-            num_training_steps=(len(self.train_dataloader) * config["num_epochs"]),
-        )
+        if self.config["max_train_samples"] > 0:
+            self.lr_scheduler = get_linear_schedule_with_warmup(
+                optimizer=self.optimizer,
+                num_warmup_steps=config["warmup_steps"],
+                num_training_steps=(len(self.train_dataloader) * config["num_epochs"]),
+            )
 
         if self.wandb:
             self.wandb_run = self.init_wandb()
 
     def init_wandb(self):
+        if "max_train_samples" in self.config:
+            return wandb.init(
+                project=self.config["wandb_project"],
+                config=self.config,
+                name=f"{self.config['model_name_or_path']}_{'_'.join(self.config['datasets'])}_{self.config['timestamp']}_{self.config['run']}_{self.config['max_train_samples']}",
+            )
+
         return wandb.init(
             project=self.config["wandb_project"],
             config=self.config,
@@ -279,7 +287,7 @@ class Trainer:
 
             print(f"{epoch=},", self.metrics)
 
-        test_metrics = self.test()
+        test_metrics = self.test(load_model=self.config["load_model"])
         self.metrics.update(test_metrics)
         self.metrics.update(self.get_avg(self.metrics, "test_loss"))
 
